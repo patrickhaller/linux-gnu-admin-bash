@@ -11,6 +11,22 @@ lgab_is_process() {
 	lgab_is_process_command $1 
 }
 
+lgab_kill_after() {
+	local pid=$!
+	local seconds=$1
+	disown $pid
+	(
+		SECONDS=0
+		while lgab_is_process $pid; do
+			[[ $SECONDS -gt $seconds ]] && { 
+				kill -9 $pid
+				break
+			}
+			sleep 1
+		done
+	)
+}
+
 lgab_test_run() {
 	res=$( $1 )
 	ret=$?
@@ -30,6 +46,17 @@ lgab_test_suite() {
 	lgab_test_run 'lgab_is_process 28383883' "" 1
 	lgab_test_run "lgab_is_process $tmpf" "" 0
 	lgab_test_run "lgab_is_process /etc/passwd" "" 1
+
+	SECONDS=0
+	sleep 60 &
+	lgab_kill_after 1
+	lgab_test_run "test $SECONDS -lt 60  " "" 0
+
+	SECONDS=0
+	sleep 1 &
+	lgab_kill_after 60
+	lgab_test_run "test $SECONDS -lt 60  " "" 0
+
 	rm -f $tmpf
 }
 
