@@ -27,6 +27,19 @@ lgab_kill_after() {
 	)
 }
 
+lgab_errexit() {
+	set -o errtrace
+	error_handler() {
+		echo "Error in ${BASH_SOURCE[1]} at line ${BASH_LINENO[0]}, exiting..."
+		local stack=${FUNCNAME[*]}
+		stack=${stack/error_handler }
+		stack=${stack// /<-}
+		echo "  Stacktrace = ${stack}"
+		exit 1
+	}
+	trap error_handler ERR
+}
+
 lgab_test_run() {
 	res=$( $1 )
 	ret=$?
@@ -61,3 +74,4 @@ lgab_test_suite() {
 }
 
 [[ "${BASH_ARGV[0]}" =~ "lgab_test" ]] && lgab_test_suite
+[[ "${LGAB_DISABLE_ERREXIT}" = "" ]] && lgab_errexit
